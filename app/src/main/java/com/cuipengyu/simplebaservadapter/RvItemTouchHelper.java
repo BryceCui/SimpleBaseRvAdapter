@@ -17,10 +17,13 @@
 package com.cuipengyu.simplebaservadapter;
 
 import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
+import android.animation.ObjectAnimator;
 import android.animation.ValueAnimator;
 import android.content.res.Resources;
 import android.graphics.Canvas;
 import android.graphics.Rect;
+import android.graphics.RectF;
 import android.os.Build;
 import android.support.annotation.Nullable;
 import android.support.v4.view.GestureDetectorCompat;
@@ -38,7 +41,9 @@ import android.view.MotionEvent;
 import android.view.VelocityTracker;
 import android.view.View;
 import android.view.ViewConfiguration;
+import android.view.ViewGroup;
 import android.view.ViewParent;
+import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.animation.Interpolator;
 
 import java.util.ArrayList;
@@ -148,7 +153,7 @@ public class RvItemTouchHelper extends RecyclerView.ItemDecoration
      * Currently selected view holder
      */
     ViewHolder mSelected = null;
-
+    ViewHolder mPreOpened = null;
     /**
      * The reference coordinates for the action start. For drag & drop, this is the time long
      * press is completed vs for swipe, this is the initial touch point.
@@ -271,6 +276,8 @@ public class RvItemTouchHelper extends RecyclerView.ItemDecoration
     GestureDetectorCompat mGestureDetector;
 
     private final OnItemTouchListener mOnItemTouchListener = new OnItemTouchListener() {
+        //新增 boolean 标志位
+        boolean mClick = false;
         @Override
         public boolean onInterceptTouchEvent(RecyclerView recyclerView, MotionEvent event) {
             mGestureDetector.onTouchEvent(event);
@@ -282,6 +289,8 @@ public class RvItemTouchHelper extends RecyclerView.ItemDecoration
                 mActivePointerId = event.getPointerId(0);
                 mInitialTouchX = event.getX();
                 mInitialTouchY = event.getY();
+
+                mClick = true;
                 obtainVelocityTracker();
                 if (mSelected == null) {
                     final RecoverAnimation animation = findAnimation(event);
@@ -297,7 +306,14 @@ public class RvItemTouchHelper extends RecyclerView.ItemDecoration
                     }
                 }
             } else if (action == MotionEvent.ACTION_CANCEL || action == MotionEvent.ACTION_UP) {
+                //手指抬起来，即 click 事件
+                //进行事件分发,要放在 select方法前面，否则 mSelected 会被置空
+                if (action == MotionEvent.ACTION_UP){
+                    onItemClick(event);
+
+                }
                 mActivePointerId = ACTIVE_POINTER_ID_NONE;
+
                 select(null, ACTION_STATE_IDLE);
             } else if (mActivePointerId != ACTIVE_POINTER_ID_NONE) {
                 // in a non scroll orientation, if distance change is above threshold, we
@@ -342,6 +358,8 @@ public class RvItemTouchHelper extends RecyclerView.ItemDecoration
                 case MotionEvent.ACTION_MOVE: {
                     // Find the index of the active pointer and fetch its position
                     if (activePointerIndex >= 0) {
+                        //设置标志位为 false，这样只接收滑动后的点击事件
+                        mClick = false;
                         updateDxDy(event, mSelectedFlags, activePointerIndex);
                         moveIfNecessary(viewHolder);
                         mRecyclerView.removeCallbacks(mScrollRunnable);
@@ -356,10 +374,17 @@ public class RvItemTouchHelper extends RecyclerView.ItemDecoration
                     }
                     // fall through
                 case MotionEvent.ACTION_UP:
+                    //手指抬起来，即 click 事件
+                    //进行事件分发,要放在 select方法前面，否则 mSelected 会被置空
+                    if (mClick) {
+                        onItemClick(event);
+                    }
+                    mClick = false;
                     select(null, ACTION_STATE_IDLE);
                     mActivePointerId = ACTIVE_POINTER_ID_NONE;
                     break;
                 case MotionEvent.ACTION_POINTER_UP: {
+                    mClick = false;
                     final int pointerIndex = event.getActionIndex();
                     final int pointerId = event.getPointerId(pointerIndex);
                     if (pointerId == mActivePointerId) {
@@ -594,6 +619,7 @@ public class RvItemTouchHelper extends RecyclerView.ItemDecoration
                             // wait until remove animation is complete.
                             mPendingCleanup.add(prevSelected.itemView);
                             mIsPendingCleanup = true;
+                            mPreOpened = prevSelected;
                             if (swipeDir > 0) {
                                 // Animation might be ended by other animators during a layout.
                                 // We defer callback to avoid editing adapter during a layout.
@@ -842,6 +868,14 @@ public class RvItemTouchHelper extends RecyclerView.ItemDecoration
         if (mSelected != null && holder == mSelected) {
             select(null, ACTION_STATE_IDLE);
         } else {
+            View itemFrontView = mCallback.getItemFrontView(holder);
+            if (itemFrontView != null && itemFrontView.getTag() != null) {
+                ObjectAnimator objAnim = (ObjectAnimator) itemFrontView.getTag();
+                objAnim.end();
+                itemFrontView.setTranslationX(0);
+                itemFrontView.setScrollX(0);
+                itemFrontView.setTag(null);
+            }
             endRecoverAnimation(holder, false); // this may push it into pending cleanup list.
             if (mPendingCleanup.remove(holder.itemView)) {
                 mCallback.clearView(mRecyclerView, holder);
@@ -972,6 +1006,9 @@ public class RvItemTouchHelper extends RecyclerView.ItemDecoration
         mDx = mDy = 0f;
         mActivePointerId = motionEvent.getPointerId(0);
         select(vh, ACTION_STATE_SWIPE);
+        if (mPreOpened != null && mPreOpened != vh && mPreOpened != null) {
+            closeOpenedPreItem();
+        }
         return true;
     }
 
@@ -1373,7 +1410,7 @@ public class RvItemTouchHelper extends RecyclerView.ItemDecoration
          * implementations for different platform versions.
          * <p>
          * By default, {@link Callback} applies these changes on
-         * {@link RecyclerView.ViewHolder#itemView}.
+         * {@link ViewHolder#itemView}.
          * <p>
          * For example, if you have a use case where you only want the text to move when user
          * swipes over the view, you can do the following:
@@ -1814,6 +1851,22 @@ public class RvItemTouchHelper extends RecyclerView.ItemDecoration
         public abstract void onSwiped(ViewHolder viewHolder, int direction);
 
         /**
+         * @param viewHolder this is pre action viewHolder, there we think view has two child
+         *                   first one is back action view.Front is show view.
+         * @return
+         */
+        public View getItemFrontView(ViewHolder viewHolder) {
+            if (viewHolder == null) return null;
+            if (viewHolder.itemView instanceof ViewGroup && ((ViewGroup) viewHolder.itemView).getChildCount() > 1) {
+                ViewGroup viewGroup = (ViewGroup) viewHolder.itemView;
+                return viewGroup.getChildAt(viewGroup.getChildCount() - 1);
+            } else {
+                return viewHolder.itemView;
+            }
+        }
+
+
+        /**
          * Called when the ViewHolder swiped or dragged by the ItemTouchHelper is changed.
          * <p/>
          * If you override this method, you should call super.
@@ -1823,7 +1876,7 @@ public class RvItemTouchHelper extends RecyclerView.ItemDecoration
          * @param actionState One of {@link RvItemTouchHelper#ACTION_STATE_IDLE},
          *                    {@link RvItemTouchHelper#ACTION_STATE_SWIPE} or
          *                    {@link RvItemTouchHelper#ACTION_STATE_DRAG}.
-         * @see #clearView(RecyclerView, RecyclerView.ViewHolder)
+         * @see #clearView(RecyclerView, ViewHolder)
          */
         public void onSelectedChanged(ViewHolder viewHolder, int actionState) {
             if (viewHolder != null) {
@@ -1960,7 +2013,7 @@ public class RvItemTouchHelper extends RecyclerView.ItemDecoration
          * also completed its animation.
          * <p>
          * This is a good place to clear all changes on the View that was done in
-         * {@link #onSelectedChanged(RecyclerView.ViewHolder, int)},
+         * {@link #onSelectedChanged(ViewHolder, int)},
          * {@link #onChildDraw(Canvas, RecyclerView, ViewHolder, float, float, int,
          * boolean)} or
          * {@link #onChildDrawOver(Canvas, RecyclerView, ViewHolder, float, float, int, boolean)}.
@@ -1983,7 +2036,7 @@ public class RvItemTouchHelper extends RecyclerView.ItemDecoration
          * ItemTouchHelper also takes care of drawing the child after other children if it is being
          * dragged. This is done using child re-ordering mechanism. On platforms prior to L, this
          * is
-         * achieved via {@link android.view.ViewGroup#getChildDrawingOrder(int, int)} and on L
+         * achieved via {@link ViewGroup#getChildDrawingOrder(int, int)} and on L
          * and after, it changes View's elevation value to be greater than all other children.)
          *
          * @param c                 The canvas which RecyclerView is drawing its children
@@ -2017,7 +2070,7 @@ public class RvItemTouchHelper extends RecyclerView.ItemDecoration
          * ItemTouchHelper also takes care of drawing the child after other children if it is being
          * dragged. This is done using child re-ordering mechanism. On platforms prior to L, this
          * is
-         * achieved via {@link android.view.ViewGroup#getChildDrawingOrder(int, int)} and on L
+         * achieved via {@link ViewGroup#getChildDrawingOrder(int, int)} and on L
          * and after, it changes View's elevation value to be greater than all other children.)
          *
          * @param c                 The canvas which RecyclerView is drawing its children
@@ -2226,6 +2279,26 @@ public class RvItemTouchHelper extends RecyclerView.ItemDecoration
         }
 
         @Override
+        public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
+            if (distanceY > distanceX)
+                closeOpenedPreItem();
+            mRecyclerView.stopNestedScroll();
+            return super.onScroll(e1, e2, distanceX, distanceY);
+
+        }
+
+        @Override
+        public boolean onSingleTapUp(MotionEvent e) {
+            return true;
+        }
+
+        @Override
+        public boolean onSingleTapConfirmed(MotionEvent e) {
+            closeOpenedPreItem();
+            return true;
+        }
+
+        @Override
         public boolean onDown(MotionEvent e) {
             return true;
         }
@@ -2373,5 +2446,69 @@ public class RvItemTouchHelper extends RecyclerView.ItemDecoration
         public void onAnimationRepeat(Animator animation) {
 
         }
+    }
+
+    private void closeOpenedPreItem() {
+        final View view = mCallback.getItemFrontView(mPreOpened);
+        if (mPreOpened == null || view == null)
+            return;
+
+        ObjectAnimator objectAnimator = ObjectAnimator.ofFloat(view, "translationX", view.getTranslationX(), 0f);
+        objectAnimator.addListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationStart(Animator animation) {
+                super.onAnimationStart(animation);
+                if (mPreOpened != null) mCallback.clearView(mRecyclerView, mPreOpened);
+                if (mPreOpened != null) mPendingCleanup.remove(mPreOpened.itemView);
+                endRecoverAnimation(mPreOpened, true);
+                mPreOpened = mSelected;
+            }
+
+//            @Override
+//            public void onAnimationEnd(Animator animation) {
+//                super.onAnimationEnd(animation);
+//                mRecoverAnimations.clear();
+//            }
+        });
+        view.setTag(objectAnimator);
+        objectAnimator.setInterpolator(new AccelerateDecelerateInterpolator());
+        objectAnimator.start();
+    }
+
+    private void onItemClick(MotionEvent event) {
+        if (mSelected == null)
+            return;
+        View itemView = mSelected.itemView;
+        if (itemView instanceof ViewGroup) {
+            View consumeView = findConsumeView((ViewGroup) itemView, event.getRawX(), event.getRawY());
+            if (consumeView != null) {
+                consumeView.performClick();
+            }
+        }
+    }
+
+    private View findConsumeView(ViewGroup viewGroup, float rawX, float rawY) {
+        for (int i = viewGroup.getChildCount() - 1; i >= 0; i--) {
+            View childAt = viewGroup.getChildAt(i);
+            if (childAt instanceof ViewGroup) {
+                View consumeView = findConsumeView((ViewGroup) childAt, rawX, rawY);
+                if (consumeView != null)
+                    return consumeView;
+            } else if (contains(childAt, rawX, rawY))
+                return childAt;
+
+        }
+        if (contains(viewGroup, rawX, rawY))
+            return viewGroup;
+        return null;
+    }
+
+    private boolean contains(View view, float rawX, float rawY) {
+        int[] location = new int[2];
+        view.getLocationOnScreen(location);
+        RectF rectF = new RectF(location[0], location[1], location[0] + view.getWidth(), location[1] + view.getHeight());
+        if (rectF.contains(rawX, rawY))
+            return true;
+        return false;
     }
 }

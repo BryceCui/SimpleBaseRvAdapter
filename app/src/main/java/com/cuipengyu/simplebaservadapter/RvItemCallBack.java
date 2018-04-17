@@ -8,6 +8,8 @@ package com.cuipengyu.simplebaservadapter;
  * Instructions ：
  */
 public class RvItemCallBack extends RvItemOnTouchHelperCallBack {
+    public final static int RVHELPER_LEFT_RIGHT = RvItemTouchHelper.LEFT | RvItemTouchHelper.RIGHT;
+    public final static int RVHELPER_RIGHT = RvItemTouchHelper.RIGHT;
     private boolean swipeEnabled = false;
     private boolean longEnabled = false;
     private int swipeFlags = RvItemTouchHelper.LEFT;
@@ -23,7 +25,6 @@ public class RvItemCallBack extends RvItemOnTouchHelperCallBack {
 
     public void setSwipeEnabled(boolean is) {
         swipeEnabled = is;
-
     }
 
     @Override

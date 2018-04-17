@@ -77,7 +77,7 @@ public abstract class RvItemOnTouchHelperCallBack extends RvItemTouchHelper.Call
      */
     @Override
     public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) {
-        mAnInterface.onItemRemove(viewHolder.getAdapterPosition());
+//        mAnInterface.onItemRemove(viewHolder.getAdapterPosition());
     }
 
     @Override
