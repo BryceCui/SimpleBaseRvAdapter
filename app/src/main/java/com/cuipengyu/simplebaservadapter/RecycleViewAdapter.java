@@ -1,7 +1,6 @@
 package com.cuipengyu.simplebaservadapter;
 
 import android.content.Context;
-import android.graphics.Color;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -10,6 +9,7 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.util.Collections;
 import java.util.List;
@@ -32,29 +32,30 @@ public class RecycleViewAdapter extends RecyclerView.Adapter<RecycleViewAdapter.
 
     @Override
     public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-        ViewHolder viewHolder = new ViewHolder(LayoutInflater.from(mContext).inflate(R.layout.item_rv, parent, false));
-        return viewHolder;
+        return new ViewHolder(LayoutInflater.from(mContext).inflate(R.layout.item_rv, parent, false));
     }
-
     @Override
-    public void onBindViewHolder(final ViewHolder holder,  int position) {
+    public void onBindViewHolder(final ViewHolder holder, int position) {
         holder.contentTv.setText(String.valueOf(mData.get(position)));
-        holder.itemView.setBackgroundColor(Color.RED);
+        holder.itemView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Toast.makeText(mContext, "itemView", Toast.LENGTH_SHORT).show();
+            }
+        });
         holder.deleteTv.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                Toast.makeText(mContext, "delete", Toast.LENGTH_SHORT).show();
                 onItemRemove(holder.getAdapterPosition());
             }
         });
-
         holder.moreTv.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                Toast.makeText(mContext, "moreTv", Toast.LENGTH_SHORT).show();
             }
         });
-
-
-
     }
 
     @Override
@@ -64,14 +65,14 @@ public class RecycleViewAdapter extends RecyclerView.Adapter<RecycleViewAdapter.
 
     @Override
     public void onItemMove(int fromPostion, int toPostion) {
-        Collections.swap(mData,fromPostion,toPostion);
-        notifyItemMoved(fromPostion,toPostion);
+        Collections.swap(mData, fromPostion, toPostion);
+        notifyItemMoved(fromPostion, toPostion);
     }
 
     @Override
     public void onItemRemove(int Postion) {
-       mData.remove(Postion);
-       notifyItemRemoved(Postion);
+        mData.remove(Postion);
+        notifyItemRemoved(Postion);
     }
 
     @Override
@@ -88,14 +89,14 @@ public class RecycleViewAdapter extends RecyclerView.Adapter<RecycleViewAdapter.
 
 
     class ViewHolder extends RecyclerView.ViewHolder {
-        public TextView contentTv;
-        public TextView deleteTv;
-        public TextView moreTv;
-        public LinearLayout mLinearLayout;
-        public ImageView duo_a;
-        public RelativeLayout item_connext;
+        TextView contentTv;
+        TextView deleteTv;
+        TextView moreTv;
+        LinearLayout mLinearLayout;
+        ImageView duo_a;
+        RelativeLayout item_connext;
 
-        public ViewHolder(View itemView) {
+        ViewHolder(View itemView) {
             super(itemView);
             contentTv = itemView.findViewById(R.id.list_item);
             deleteTv = itemView.findViewById(R.id.delete);
@@ -105,6 +106,5 @@ public class RecycleViewAdapter extends RecyclerView.Adapter<RecycleViewAdapter.
             mLinearLayout = itemView.findViewById(R.id.delete_layout);
         }
     }
-
 
 }

@@ -2,6 +2,7 @@ package com.cuipengyu.simplebaservadapter;
 
 import android.graphics.Canvas;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.View;
 
 import static com.cuipengyu.simplebaservadapter.RvItemTouchHelper.ACTION_STATE_SWIPE;
@@ -112,13 +113,17 @@ public abstract class RvItemOnTouchHelperCallBack extends RvItemTouchHelper.Call
             int translax = mAnInterface.getMenuWidth(viewHolder); //获取菜单的宽度
             View contentView = mAnInterface.getContentView(viewHolder);//获取view的宽度
             if (contentView == null) return;
+            Log.e("translax-----",translax+"");
             if (dX < -translax) {//向左滑动dx是小于的 ，最大滑动距离当然不能超过菜单宽度了
                 dX = -translax;
+//                Log.e("dX1-----",dX+"");
                 contentView.setTranslationX(dX);
             } else {
+                Log.e("dX2-----",dX+"");
                 contentView.setTranslationX(dX);
             }
         } else {
+//            Log.e("dX3-----",dX+"");
             //不是侧滑，可能是长按拖拽也可能是上下滑动，点击啊 什么动作的执行原来的行为。
             super.onChildDraw(c, recyclerView, viewHolder, dX, dY, actionState, isCurrentlyActive);
         }
