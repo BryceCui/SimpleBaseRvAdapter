@@ -277,10 +277,10 @@ public class RvItemTouchHelper extends RecyclerView.ItemDecoration
 
     private final OnItemTouchListener mOnItemTouchListener = new OnItemTouchListener() {
         //新增 boolean 标志位
-        boolean mClick = false;
+//        boolean mClick = false;
         float mFirstX;
         float mLastX;
-        // TODO: 2018/4/18  添加只有在滑动后点击事件才有效 。否则影响
+        //  添加只有在滑动后点击事件才有效
         @Override
         public boolean onInterceptTouchEvent(RecyclerView recyclerView, MotionEvent event) {
             mGestureDetector.onTouchEvent(event);
@@ -293,7 +293,7 @@ public class RvItemTouchHelper extends RecyclerView.ItemDecoration
                 mInitialTouchX = event.getX();
                 mInitialTouchY = event.getY();
                 mFirstX =mInitialTouchX;
-                mClick = true;
+//                mClick = true;
                 obtainVelocityTracker();
                 if (mSelected == null) {
                     final RecoverAnimation animation = findAnimation(event);
@@ -309,15 +309,18 @@ public class RvItemTouchHelper extends RecyclerView.ItemDecoration
                     }
                 }
             } else if (action == MotionEvent.ACTION_CANCEL || action == MotionEvent.ACTION_UP) {
+//                if (Math.abs(mLastX)-Math.abs(mFirstX)>20){
+//                    mClick=false;
+//                }else {
+//                    mClick=true;
+//                }
                 //手指抬起来，即 click 事件
                 //进行事件分发,要放在 select方法前面，否则 mSelected 会被置空
+                mActivePointerId = ACTIVE_POINTER_ID_NONE;
+                select(null, ACTION_STATE_IDLE);
 //                if (action == MotionEvent.ACTION_UP){
 //                    onItemClick(event);
-//
 //                }
-                mActivePointerId = ACTIVE_POINTER_ID_NONE;
-
-                select(null, ACTION_STATE_IDLE);
             } else if (mActivePointerId != ACTIVE_POINTER_ID_NONE) {
                 // in a non scroll orientation, if distance change is above threshold, we
                 // can select the item
@@ -361,7 +364,6 @@ public class RvItemTouchHelper extends RecyclerView.ItemDecoration
                 case MotionEvent.ACTION_MOVE: {
                     // Find the index of the active pointer and fetch its position
                     if (activePointerIndex >= 0) {
-                        //设置标志位为 false，这样只接收滑动后的点击事件
                         updateDxDy(event, mSelectedFlags, activePointerIndex);
                         moveIfNecessary(viewHolder);
                         mRecyclerView.removeCallbacks(mScrollRunnable);
@@ -377,22 +379,17 @@ public class RvItemTouchHelper extends RecyclerView.ItemDecoration
                     }
                     // fall through
                 case MotionEvent.ACTION_UP:
-                    if (Math.abs(mLastX)-Math.abs(mFirstX)>20){
-                        mClick=false;
-                    }else {
-                        mClick=true;
-                    }
+
                     //手指抬起来，即 click 事件
                     //进行事件分发,要放在 select方法前面，否则 mSelected 会被置空
-                    if (mClick) {
+//                    if (mClick) {
                         onItemClick(event);
-                    }
-                    mClick = false;
+//                    }
+//                    mClick = false;
                     select(null, ACTION_STATE_IDLE);
                     mActivePointerId = ACTIVE_POINTER_ID_NONE;
                     break;
                 case MotionEvent.ACTION_POINTER_UP: {
-                    mClick = false;
                     final int pointerIndex = event.getActionIndex();
                     final int pointerId = event.getPointerId(pointerIndex);
                     if (pointerId == mActivePointerId) {

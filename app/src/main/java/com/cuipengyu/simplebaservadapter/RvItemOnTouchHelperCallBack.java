@@ -110,8 +110,8 @@ public abstract class RvItemOnTouchHelperCallBack extends RvItemTouchHelper.Call
     public void onChildDraw(Canvas c, RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder, float dX, float dY, int actionState, boolean isCurrentlyActive) {
         //如果是侧滑行为
         if (actionState == ACTION_STATE_SWIPE) {
-            int translax = mAnInterface.getMenuWidth(viewHolder); //获取菜单的宽度
-            View contentView = mAnInterface.getContentView(viewHolder);//获取view的宽度
+            int translax = mAnInterface.getMenuWidth((BaseRvViewHolder) viewHolder); //获取菜单的宽度
+            View contentView = mAnInterface.getContentView((BaseRvViewHolder) viewHolder);//获取view的宽度
             if (contentView == null) return;
             Log.e("translax-----",translax+"");
             if (dX < -translax) {//向左滑动dx是小于的 ，最大滑动距离当然不能超过菜单宽度了

@@ -182,4 +182,16 @@ public class BaseRvViewHolder extends RecyclerView.ViewHolder {
         return this;
     }
 
+    public BaseRvViewHolder setOnClickListener(View.OnClickListener listener, @IdRes int id) {
+        View view = getView(id);
+        view.setOnClickListener(listener);
+        return this;
+    }
+
+    public BaseRvViewHolder setOnLongClickListener(View.OnLongClickListener listener, @IdRes int id) {
+        View view = getView(id);
+        view.setOnLongClickListener(listener);
+        return this;
+    }
+
 }

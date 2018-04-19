@@ -1,6 +1,6 @@
 package com.cuipengyu.simplebaservadapter;
 
-import android.support.annotation.IdRes;
+import android.support.annotation.LayoutRes;
 
 /**
  * Create by    ： 崔鹏宇
@@ -9,23 +9,8 @@ import android.support.annotation.IdRes;
  * Github       ： https://github.com/SolitarySoul
  * Instructions ：
  */
-public class ItemViewType {
-    private String mType;
-    private int mIdRes;
+public interface ItemViewType<T> {
+    int getItemType(int position, T t);
 
-    public String getmType() {
-        return mType == null ? "" : mType;
-    }
-
-    public void setmType(String mType) {
-        this.mType = mType;
-    }
-
-    public int getmIdRes() {
-        return mIdRes;
-    }
-
-    public void setmIdRes(@IdRes int mIdRes) {
-        this.mIdRes = mIdRes;
-    }
+    int getLayoutId(@LayoutRes int id);
 }
